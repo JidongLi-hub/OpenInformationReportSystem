@@ -90,7 +90,6 @@
         const { useState, useEffect, useRef } = React;
 
         // --- 图标组件定义 (Inline SVG) ---
-        // 直接定义 SVG 组件，避免 CDN 图标库加载兼容性问题
         const Activity = (props) => (
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
         );
@@ -113,30 +112,45 @@
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
         );
 
-        // --- 组件：头部导航 ---
-        const Header = ({ status }) => (
-            <header className="glass-panel sticky top-0 z-50 px-6 py-4 flex justify-between items-center border-b border-slate-700">
-                <div className="flex items-center gap-3">
-                    <div className="relative">
-                        <Shield className="w-8 h-8 text-blue-500" />
-                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-400 rounded-full animate-pulse"></div>
+        // --- 组件：头部导航 (已修复时间显示) ---
+        const Header = ({ status }) => {
+            // 1. 定义时间状态
+            const [currentTime, setCurrentTime] = useState(new Date());
+
+            // 2. 启动计时器，每秒更新一次
+            useEffect(() => {
+                const timer = setInterval(() => {
+                    setCurrentTime(new Date());
+                }, 1000);
+                // 清理函数：组件卸载时停止计时
+                return () => clearInterval(timer);
+            }, []);
+
+            return (
+                <header className="glass-panel sticky top-0 z-50 px-6 py-4 flex justify-between items-center border-b border-slate-700">
+                    <div className="flex items-center gap-3">
+                        <div className="relative">
+                            <Shield className="w-8 h-8 text-blue-500" />
+                            <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-400 rounded-full animate-pulse"></div>
+                        </div>
+                        <div>
+                            <h1 className="text-xl font-bold tracking-wider text-white">SAS-PRO <span className="text-blue-500 text-sm font-normal ml-2">态势感知智能分析系统</span></h1>
+                            <p className="text-xs text-slate-400 font-mono">v2.0.1 | MODEL: Qwen2-7B-Instruct</p>
+                        </div>
                     </div>
-                    <div>
-                        <h1 className="text-xl font-bold tracking-wider text-white">SAS-PRO <span className="text-blue-500 text-sm font-normal ml-2">态势感知智能分析系统</span></h1>
-                        <p className="text-xs text-slate-400 font-mono">v2.0.1 | MODEL: Qwen2-7B-Instruct</p>
+                    <div className="flex items-center gap-4">
+                        <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono border ${status ? 'bg-green-500/10 border-green-500/50 text-green-400' : 'bg-red-500/10 border-red-500/50 text-red-400'}`}>
+                            <div className={`w-2 h-2 rounded-full ${status ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                            {status ? 'SYSTEM ONLINE' : 'DISCONNECTED'}
+                        </div>
+                        <div className="text-slate-400 text-xs font-mono w-24 text-right">
+                            {/* 3. 使用动态时间状态 */}
+                            {currentTime.toLocaleTimeString()}
+                        </div>
                     </div>
-                </div>
-                <div className="flex items-center gap-4">
-                    <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono border ${status ? 'bg-green-500/10 border-green-500/50 text-green-400' : 'bg-red-500/10 border-red-500/50 text-red-400'}`}>
-                        <div className={`w-2 h-2 rounded-full ${status ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                        {status ? 'SYSTEM ONLINE' : 'DISCONNECTED'}
-                    </div>
-                    <div className="text-slate-400 text-xs font-mono">
-                        {new Date().toLocaleTimeString()}
-                    </div>
-                </div>
-            </header>
-        );
+                </header>
+            );
+        };
 
         // --- 组件：情报卡片 ---
         const IntelligenceCard = ({ data }) => (
@@ -145,7 +159,7 @@
                     <Database className="w-4 h-4" />
                     <span>Intelligence Context / RAG 检索情报</span>
                 </div>
-                <div className="text-sm text-slate-300 bg-slate-900/50 p-3 rounded font-mono border border-slate-700/50">
+                <div className="text-sm text-slate-300 bg-slate-900/50 p-3 rounded font-mono border border-slate-700/50 whitespace-pre-line">
                     {data || "暂无关联情报..."}
                 </div>
             </div>
@@ -158,9 +172,8 @@
             const [report, setReport] = useState("");
             const [retrievedInfo, setRetrievedInfo] = useState(null);
             const [systemStatus, setSystemStatus] = useState(true);
-            const [displayedReport, setDisplayedReport] = useState(""); // 用于打字机效果
+            const [displayedReport, setDisplayedReport] = useState(""); 
 
-            // 打字机效果 Hook
             useEffect(() => {
                 if (!report) {
                     setDisplayedReport("");
@@ -171,21 +184,19 @@
                     setDisplayedReport(report.substring(0, i));
                     i++;
                     if (i > report.length) clearInterval(timer);
-                }, 15); // 打字速度
+                }, 15); 
                 return () => clearInterval(timer);
             }, [report]);
 
-            // 提交处理函数
             const handleSubmit = async () => {
                 if (!input.trim()) return;
                 
                 setLoading(true);
-                setReport(""); // 清空旧报告
+                setReport(""); 
                 setDisplayedReport("");
                 setRetrievedInfo(null);
 
                 try {
-                    // 调用 server.py 的接口
                     const response = await fetch("http://localhost:8001/generate_report", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
@@ -196,7 +207,6 @@
 
                     const data = await response.json();
                     
-                    // 模拟一点延迟感，让用户觉得在深度思考
                     setTimeout(() => {
                         setRetrievedInfo(data.retrieved_info);
                         setReport(data.report_content);
@@ -214,7 +224,6 @@
 
             return (
                 <div className="min-h-screen bg-[url('https://res.cloudinary.com/practicaldev/image/fetch/s--_MCEk7P6--/c_limit%2Cf_auto%2Cfl_progressive%2Cq_auto%2Cw_880/https://dev-to-uploads.s3.amazonaws.com/i/1wwdyw5de8avrdkgtz5n.png')] bg-cover bg-fixed bg-center">
-                    {/* 遮罩层，让背景暗一点 */}
                     <div className="min-h-screen bg-slate-900/90 backdrop-blur-sm flex flex-col">
                         
                         <Header status={systemStatus} />
@@ -223,7 +232,6 @@
                             
                             {/* 左侧：控制面板 */}
                             <div className="lg:col-span-4 flex flex-col gap-6">
-                                {/* 输入区 */}
                                 <div className="glass-panel p-6 rounded-xl flex flex-col gap-4 h-full">
                                     <div className="flex items-center gap-2 text-slate-100 font-bold border-b border-slate-700 pb-3">
                                         <Activity className="w-5 h-5 text-blue-500" />
@@ -267,7 +275,6 @@
                             <div className="lg:col-span-8 flex flex-col gap-6">
                                 <div className="glass-panel p-8 rounded-xl min-h-[600px] flex flex-col relative overflow-hidden">
                                     
-                                    {/* 装饰性背景 */}
                                     <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
                                         <FileText className="w-64 h-64 text-white" />
                                     </div>
@@ -286,15 +293,11 @@
                                     </div>
 
                                     <div className="flex-1 overflow-y-auto z-10 pr-2">
-                                        {/* 如果有检索到的信息，显示在这里 */}
                                         {retrievedInfo && <IntelligenceCard data={retrievedInfo} />}
 
-                                        {/* 报告正文 */}
                                         {displayedReport ? (
                                             <div className="prose prose-invert prose-slate max-w-none">
-                                                {/* 使用 marked 库将 Markdown 转换为 HTML */}
                                                 <div dangerouslySetInnerHTML={{ __html: marked.parse(displayedReport) }} />
-                                                {/* 光标 */}
                                                 <span className="inline-block w-2 h-5 bg-cyan-500 ml-1 align-middle cursor-blink"></span>
                                             </div>
                                         ) : (
@@ -306,7 +309,6 @@
                                         )}
                                     </div>
                                     
-                                    {/* 底部状态栏 */}
                                     <div className="mt-6 pt-4 border-t border-slate-700 flex justify-between text-xs text-slate-500 font-mono">
                                         <span>SECURITY LEVEL: CONFIDENTIAL</span>
                                         <span>ID: {Math.random().toString(36).substr(2, 9).toUpperCase()}</span>

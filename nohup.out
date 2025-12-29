@@ -1,0 +1,57 @@
+/data2/home/lijidong/.conda/envs/vllm/bin/python: can't find '__main__' module in '/data2/home/lijidong/vllm-qwen/./database/'
+/data2/home/lijidong/.conda/envs/vllm/lib/python3.10/site-packages/milvus_lite/__init__.py:15: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import DistributionNotFound, get_distribution
+[INFO] 成功连接到 vLLM 服务 http://localhost:7979/v1
+[INFO] 当前集合 chunk 中已有 45648 条数据
+[INFO] 成功连接到 Milvus 数据库 ./database/OIR.db
+处理文档:   0%|          | 0/20 [00:00<?, ?it/s]处理文档:   5%|▌         | 1/20 [00:28<08:57, 28.31s/it]处理文档:  10%|█         | 2/20 [01:08<10:32, 35.12s/it]处理文档:  15%|█▌        | 3/20 [01:51<10:59, 38.79s/it]处理文档:  20%|██        | 4/20 [02:43<11:45, 44.08s/it]处理文档:  25%|██▌       | 5/20 [03:19<10:16, 41.07s/it]处理文档:  30%|███       | 6/20 [04:09<10:18, 44.20s/it]处理文档:  35%|███▌      | 7/20 [04:54<09:36, 44.37s/it]处理文档:  40%|████      | 8/20 [05:17<07:33, 37.79s/it]处理文档:  45%|████▌     | 9/20 [05:30<05:28, 29.89s/it]处理文档:  50%|█████     | 10/20 [06:22<06:07, 36.72s/it]处理文档:  55%|█████▌    | 11/20 [07:44<07:36, 50.73s/it]处理文档:  60%|██████    | 12/20 [08:56<07:36, 57.00s/it]处理文档:  65%|██████▌   | 13/20 [09:52<06:36, 56.71s/it]处理文档:  70%|███████   | 14/20 [10:35<05:16, 52.72s/it]处理文档:  75%|███████▌  | 15/20 [11:06<03:50, 46.15s/it]处理文档:  80%|████████  | 16/20 [11:43<02:53, 43.30s/it]处理文档:  85%|████████▌ | 17/20 [12:18<02:02, 40.96s/it]处理文档:  90%|█████████ | 18/20 [13:22<01:35, 47.64s/it]处理文档:  95%|█████████▌| 19/20 [13:59<00:44, 44.48s/it]处理文档: 100%|██████████| 20/20 [14:56<00:00, 48.44s/it]处理文档: 100%|██████████| 20/20 [14:56<00:00, 44.85s/it]
+[INFO] 成功处理文档 /data2/home/lijidong/vllm-qwen/datafiles/guowu_data/America/downloadsnew/johnson-a/epub/frus1873p2v3.md，共切分为 1428 个块并插入到数据库中, 当前总计 47076 条数据
+[INFO] 成功处理文档 /data2/home/lijidong/vllm-qwen/datafiles/guowu_data/America/downloadsnew/johnson-a/epub/frus1865p4.md，共切分为 1770 个块并插入到数据库中, 当前总计 48846 条数据
+[INFO] 成功处理文档 /data2/home/lijidong/vllm-qwen/datafiles/guowu_data/America/downloadsnew/johnson-a/epub/frus1866p1.md，共切分为 2314 个块并插入到数据库中, 当前总计 51160 条数据
+[INFO] 成功处理文档 /data2/home/lijidong/vllm-qwen/datafiles/guowu_data/America/downloadsnew/johnson-a/epub/frus1867p2.md，共切分为 2661 个块并插入到数据库中, 当前总计 53821 条数据
+[INFO] 成功处理文档 /data2/home/lijidong/vllm-qwen/datafiles/guowu_data/America/downloadsnew/johnson-a/epub/frus1882.md，共切分为 1714 个块并插入到数据库中, 当前总计 55535 条数据
+[INFO] 成功处理文档 /data2/home/lijidong/vllm-qwen/datafiles/guowu_data/America/downloadsnew/johnson-a/epub/frus1865p1.md，共切分为 2443 个块并插入到数据库中, 当前总计 57978 条数据
+[INFO] 成功处理文档 /data2/home/lijidong/vllm-qwen/datafiles/guowu_data/America/downloadsnew/johnson-a/epub/frus1867p1.md，共切分为 2397 个块并插入到数据库中, 当前总计 60375 条数据
+[INFO] 成功处理文档 /data2/home/lijidong/vllm-qwen/datafiles/guowu_data/America/downloadsnew/johnson-a/epub/frus1864p4.md，共切分为 1282 个块并插入到数据库中, 当前总计 61657 条数据
+[INFO] 成功处理文档 /data2/home/lijidong/vllm-qwen/datafiles/guowu_data/America/downloadsnew/johnson-a/epub/frus1872p2v5.md，共切分为 684 个块并插入到数据库中, 当前总计 62341 条数据
+[INFO] 成功处理文档 /data2/home/lijidong/vllm-qwen/datafiles/guowu_data/America/downloadsnew/johnson-a/epub/frus1868p1.md，共切分为 2724 个块并插入到数据库中, 当前总计 65065 条数据
+[INFO] 成功处理文档 /data2/home/lijidong/vllm-qwen/datafiles/guowu_data/America/downloadsnew/johnson-a/epub/frus1894app2.md，共切分为 3851 个块并插入到数据库中, 当前总计 68916 条数据
+[INFO] 成功处理文档 /data2/home/lijidong/vllm-qwen/datafiles/guowu_data/America/downloadsnew/johnson-a/epub/frus1879.md，共切分为 3556 个块并插入到数据库中, 当前总计 72472 条数据
+[INFO] 成功处理文档 /data2/home/lijidong/vllm-qwen/datafiles/guowu_data/America/downloadsnew/johnson-a/epub/frus1865p3.md，共切分为 2604 个块并插入到数据库中, 当前总计 75076 条数据
+[INFO] 成功处理文档 /data2/home/lijidong/vllm-qwen/datafiles/guowu_data/America/downloadsnew/johnson-a/epub/frus1872p2v1.md，共切分为 2273 个块并插入到数据库中, 当前总计 77349 条数据
+[INFO] 成功处理文档 /data2/home/lijidong/vllm-qwen/datafiles/guowu_data/America/downloadsnew/johnson-a/epub/frus1872p2v2.md，共切分为 1661 个块并插入到数据库中, 当前总计 79010 条数据
+[INFO] 成功处理文档 /data2/home/lijidong/vllm-qwen/datafiles/guowu_data/America/downloadsnew/johnson-a/epub/frus1866p2.md，共切分为 2072 个块并插入到数据库中, 当前总计 81082 条数据
+[INFO] 成功处理文档 /data2/home/lijidong/vllm-qwen/datafiles/guowu_data/America/downloadsnew/johnson-a/epub/frus1865p2.md，共切分为 1745 个块并插入到数据库中, 当前总计 82827 条数据
+[INFO] 成功处理文档 /data2/home/lijidong/vllm-qwen/datafiles/guowu_data/America/downloadsnew/johnson-a/epub/frus1868p2.md，共切分为 3205 个块并插入到数据库中, 当前总计 86032 条数据
+[INFO] 成功处理文档 /data2/home/lijidong/vllm-qwen/datafiles/guowu_data/America/downloadsnew/johnson-a/epub/frus1866p3.md，共切分为 1982 个块并插入到数据库中, 当前总计 88014 条数据
+[INFO] 成功处理文档 /data2/home/lijidong/vllm-qwen/datafiles/guowu_data/America/downloadsnew/johnson-a/epub/frus1873p1v2.md，共切分为 3204 个块并插入到数据库中, 当前总计 91218 条数据
+处理文档:   0%|          | 0/14 [00:00<?, ?it/s]处理文档:   7%|▋         | 1/14 [00:53<11:35, 53.48s/it]处理文档:  14%|█▍        | 2/14 [01:42<10:09, 50.81s/it]处理文档:  21%|██▏       | 3/14 [02:58<11:27, 62.51s/it]处理文档:  29%|██▊       | 4/14 [03:52<09:51, 59.17s/it]处理文档:  36%|███▌      | 5/14 [04:47<08:36, 57.44s/it]处理文档:  43%|████▎     | 6/14 [06:03<08:31, 63.90s/it]处理文档:  50%|█████     | 7/14 [06:54<06:56, 59.48s/it]处理文档:  57%|█████▋    | 8/14 [08:05<06:19, 63.29s/it]处理文档:  64%|██████▍   | 9/14 [09:15<05:26, 65.37s/it]处理文档:  71%|███████▏  | 10/14 [09:56<03:51, 57.92s/it]处理文档:  79%|███████▊  | 11/14 [10:57<02:56, 58.77s/it]处理文档:  86%|████████▌ | 12/14 [11:33<01:43, 51.88s/it]处理文档:  93%|█████████▎| 13/14 [12:15<00:48, 48.87s/it]处理文档: 100%|██████████| 14/14 [12:52<00:00, 45.25s/it]处理文档: 100%|██████████| 14/14 [12:52<00:00, 55.17s/it]
+[INFO] 成功处理文档 /data2/home/lijidong/vllm-qwen/datafiles/guowu_data/America/downloadsnew/taft/epub/frus1929v01.md，共切分为 2296 个块并插入到数据库中, 当前总计 93514 条数据
+[INFO] 成功处理文档 /data2/home/lijidong/vllm-qwen/datafiles/guowu_data/America/downloadsnew/taft/epub/frus1910.md，共切分为 2481 个块并插入到数据库中, 当前总计 95995 条数据
+[INFO] 成功处理文档 /data2/home/lijidong/vllm-qwen/datafiles/guowu_data/America/downloadsnew/taft/epub/frus1913.md，共切分为 3785 个块并插入到数据库中, 当前总计 99780 条数据
+[INFO] 成功处理文档 /data2/home/lijidong/vllm-qwen/datafiles/guowu_data/America/downloadsnew/taft/epub/frus1911.md，共切分为 2109 个块并插入到数据库中, 当前总计 101889 条数据
+[INFO] 成功处理文档 /data2/home/lijidong/vllm-qwen/datafiles/guowu_data/America/downloadsnew/taft/epub/frus1916.md，共切分为 2675 个块并插入到数据库中, 当前总计 104564 条数据
+[INFO] 成功处理文档 /data2/home/lijidong/vllm-qwen/datafiles/guowu_data/America/downloadsnew/taft/epub/frus1912.md，共切分为 3738 个块并插入到数据库中, 当前总计 108302 条数据
+[INFO] 成功处理文档 /data2/home/lijidong/vllm-qwen/datafiles/guowu_data/America/downloadsnew/taft/epub/frus1908.md，共切分为 2272 个块并插入到数据库中, 当前总计 110574 条数据
+[INFO] 成功处理文档 /data2/home/lijidong/vllm-qwen/datafiles/guowu_data/America/downloadsnew/taft/epub/frus1915.md，共切分为 3463 个块并插入到数据库中, 当前总计 114037 条数据
+[INFO] 成功处理文档 /data2/home/lijidong/vllm-qwen/datafiles/guowu_data/America/downloadsnew/taft/epub/frus1917.md，共切分为 3450 个块并插入到数据库中, 当前总计 117487 条数据
+[INFO] 成功处理文档 /data2/home/lijidong/vllm-qwen/datafiles/guowu_data/America/downloadsnew/taft/epub/frus1907p2.md，共切分为 1774 个块并插入到数据库中, 当前总计 119261 条数据
+[INFO] 成功处理文档 /data2/home/lijidong/vllm-qwen/datafiles/guowu_data/America/downloadsnew/taft/epub/frus1914.md，共切分为 2890 个块并插入到数据库中, 当前总计 122151 条数据
+[INFO] 成功处理文档 /data2/home/lijidong/vllm-qwen/datafiles/guowu_data/America/downloadsnew/taft/epub/frus1909.md，共切分为 1749 个块并插入到数据库中, 当前总计 123900 条数据
+[INFO] 成功处理文档 /data2/home/lijidong/vllm-qwen/datafiles/guowu_data/America/downloadsnew/taft/epub/frus1920v02.md，共切分为 1941 个块并插入到数据库中, 当前总计 125841 条数据
+[INFO] 成功处理文档 /data2/home/lijidong/vllm-qwen/datafiles/guowu_data/America/downloadsnew/taft/epub/frus1925v02.md，共切分为 1589 个块并插入到数据库中, 当前总计 127430 条数据
+处理文档:   0%|          | 0/13 [00:00<?, ?it/s]处理文档:   8%|▊         | 1/13 [00:43<08:41, 43.42s/it]处理文档:  15%|█▌        | 2/13 [01:45<09:58, 54.45s/it]处理文档:  23%|██▎       | 3/13 [02:30<08:22, 50.27s/it]处理文档:  31%|███       | 4/13 [03:38<08:32, 56.94s/it]处理文档:  38%|███▊      | 5/13 [04:19<06:50, 51.35s/it]处理文档:  46%|████▌     | 6/13 [04:52<05:15, 45.02s/it]处理文档:  54%|█████▍    | 7/13 [06:10<05:35, 55.98s/it]处理文档:  62%|██████▏   | 8/13 [06:42<04:01, 48.25s/it]处理文档:  69%|██████▉   | 9/13 [07:20<03:00, 45.16s/it]处理文档:  77%|███████▋  | 10/13 [07:57<02:07, 42.63s/it]处理文档:  85%|████████▍ | 11/13 [08:41<01:25, 42.95s/it]处理文档:  92%|█████████▏| 12/13 [09:12<00:39, 39.32s/it]处理文档: 100%|██████████| 13/13 [10:05<00:00, 43.58s/it]处理文档: 100%|██████████| 13/13 [10:05<00:00, 46.61s/it]
+[INFO] 成功处理文档 /data2/home/lijidong/vllm-qwen/datafiles/guowu_data/America/downloadsnew/cleveland-24/epub/frus1893.md，共切分为 2210 个块并插入到数据库中, 当前总计 129640 条数据
+[INFO] 成功处理文档 /data2/home/lijidong/vllm-qwen/datafiles/guowu_data/America/downloadsnew/cleveland-24/epub/frus1902.md，共切分为 3088 个块并插入到数据库中, 当前总计 132728 条数据
+[INFO] 成功处理文档 /data2/home/lijidong/vllm-qwen/datafiles/guowu_data/America/downloadsnew/cleveland-24/epub/frus1899.md，共切分为 2241 个块并插入到数据库中, 当前总计 134969 条数据
+[INFO] 成功处理文档 /data2/home/lijidong/vllm-qwen/datafiles/guowu_data/America/downloadsnew/cleveland-24/epub/frus1898.md，共切分为 3222 个块并插入到数据库中, 当前总计 138191 条数据
+[INFO] 成功处理文档 /data2/home/lijidong/vllm-qwen/datafiles/guowu_data/America/downloadsnew/cleveland-24/epub/frus1894.md，共切分为 2161 个块并插入到数据库中, 当前总计 140352 条数据
+[INFO] 成功处理文档 /data2/home/lijidong/vllm-qwen/datafiles/guowu_data/America/downloadsnew/cleveland-24/epub/frus1901.md，共切分为 1658 个块并插入到数据库中, 当前总计 142010 条数据
+[INFO] 成功处理文档 /data2/home/lijidong/vllm-qwen/datafiles/guowu_data/America/downloadsnew/cleveland-24/epub/frus1894app2.md，共切分为 3851 个块并插入到数据库中, 当前总计 145861 条数据
+[INFO] 成功处理文档 /data2/home/lijidong/vllm-qwen/datafiles/guowu_data/America/downloadsnew/cleveland-24/epub/frus1897.md，共切分为 1594 个块并插入到数据库中, 当前总计 147455 条数据
+[INFO] 成功处理文档 /data2/home/lijidong/vllm-qwen/datafiles/guowu_data/America/downloadsnew/cleveland-24/epub/frus1895p2.md，共切分为 1982 个块并插入到数据库中, 当前总计 149437 条数据
+[INFO] 成功处理文档 /data2/home/lijidong/vllm-qwen/datafiles/guowu_data/America/downloadsnew/cleveland-24/epub/frus1894app1.md，共切分为 1939 个块并插入到数据库中, 当前总计 151376 条数据
+[INFO] 成功处理文档 /data2/home/lijidong/vllm-qwen/datafiles/guowu_data/America/downloadsnew/cleveland-24/epub/frus1895p1.md，共切分为 2173 个块并插入到数据库中, 当前总计 153549 条数据
+[INFO] 成功处理文档 /data2/home/lijidong/vllm-qwen/datafiles/guowu_data/America/downloadsnew/cleveland-24/epub/frus1902app1.md，共切分为 1442 个块并插入到数据库中, 当前总计 154991 条数据
+[INFO] 成功处理文档 /data2/home/lijidong/vllm-qwen/datafiles/guowu_data/America/downloadsnew/cleveland-24/epub/frus1896.md，共切分为 2738 个块并插入到数据库中, 当前总计 157729 条数据
+处理文档:   0%|          | 0/8 [00:00<?, ?it/s]处理文档:  12%|█▎        | 1/8 [00:37<04:22, 37.45s/it]处理文档:  25%|██▌       | 2/8 [01:09<03:24, 34.09s/it]
