@@ -4,36 +4,48 @@ import socket
 import uvicorn
 import requests
 import time
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 # ==========================================
-# 1. 核心配置与工具函数
+# 1. 导入数据库接口模块
 # ==========================================
-
-# 指向 vLLM 服务的地址
-# ⚠️ 请确保这里是你真实 vLLM 运行的端口 (你之前说是 8002)
-VLLM_API_URL = "http://localhost:8002/v1/chat/completions"
-MODEL_NAME = "Qwen/Qwen2-7B-Instruct"
-
-def find_free_port(start_port=8001, max_retries=100):
-    """自动寻找空闲端口"""
-    port = start_port
-    while port < start_port + max_retries:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            if s.connect_ex(('localhost', port)) != 0:
-                try:
-                    s.bind(('0.0.0.0', port))
-                    return port
-                except OSError:
-                    pass
-        port += 1
-    raise RuntimeError("找不到可用的空闲端口！")
+try:
+    # 导入本地 database 模块中的向量数据库类
+    from database import VectorDatabase
+    DB_MODULE_AVAILABLE = True
+    print("[Server] ✅ 成功加载 database 模块")
+except ImportError as e:
+    print(f"[Server] ⚠️ 加载 database 模块失败: {e}")
+    print("💡 提示: 请检查运行目录下是否存在 database.py 及其依赖库 (pymilvus, openai)。")
+    DB_MODULE_AVAILABLE = False
+    VectorDatabase = None
 
 # ==========================================
-# 2. FastAPI 应用初始化
+# 2. 全局服务配置
+# ==========================================
+
+# 聊天模型 API 地址 (vLLM 服务端口 8002)
+CHAT_API_URL = "http://localhost:8002/v1/chat/completions"
+CHAT_MODEL_NAME = "Qwen/Qwen2-7B-Instruct"
+
+# 初始化全局数据库实例
+GLOBAL_DB = None
+if DB_MODULE_AVAILABLE:
+    try:
+        print("[Server] 正在初始化向量数据库服务...")
+        # 实例化数据库对象 (使用默认配置连接本地 Milvus)
+        GLOBAL_DB = VectorDatabase()
+        print("[Server] ✅ 向量数据库服务就绪")
+    except Exception as e:
+        print(f"[Server] ⚠️ 数据库实例初始化异常: {e}")
+        print("💡 系统将降级运行：使用模拟数据响应请求，不影响服务启动。")
+        GLOBAL_DB = None
+
+# ==========================================
+# 3. FastAPI 应用初始化
 # ==========================================
 app = FastAPI(title="态势报告生成系统")
 
@@ -45,74 +57,79 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ==========================================
-# 3. 业务逻辑 (数据库模拟 & 报告生成)
-# ==========================================
-
 class UserRequest(BaseModel):
     user_prompt: str
 
-def mock_search_database(query: str):
-    """模拟数据库检索"""
-    print(f"[后端日志] 正在数据库中检索: {query}") 
-    return [
-        "1. [情报源A] 监测数据显示，过去48小时内，目标海域的无线电通信频率比平时增加了 15%。",
-        "2. [情报源B] 气象部门预报，受季风低压影响，该区域未来三天将出现 4-5 米的巨浪。",
-        "3. [情报源C] 历史类似事件回顾：去年同期，周边国家曾在此海域进行过联合演练。"
-    ]
+# ==========================================
+# 4. 核心业务接口
+# ==========================================
 
 @app.post("/generate_report")
 async def generate_report(request: UserRequest):
-    """生成报告的核心 API"""
-    print(f"[后端日志] 收到指令: {request.user_prompt}")
+    print(f"[Server] 接收分析指令: {request.user_prompt}")
     
     try:
-        # RAG 检索
-        retrieved_docs = mock_search_database(request.user_prompt)
-        context_str = "\n".join(retrieved_docs)
+        # --- 阶段一：执行情报检索 ---
+        retrieved_docs = []
+        if GLOBAL_DB:
+            try:
+                print("[Server] 调用向量检索接口...")
+                # 执行语义检索，获取 Top-3 相关文档片段
+                retrieved_docs = GLOBAL_DB.search_embedding(request.user_prompt, top_k=3)
+            except Exception as e:
+                print(f"[Server] ⚠️ 检索过程发生异常: {e}")
         
-        # 组装 Prompt
+        # 处理检索结果 (含降级策略)
+        if retrieved_docs:
+            print(f"[Server] ✅ 检索完成，召回 {len(retrieved_docs)} 条数据。")
+            # 格式化上下文数据，添加序号以便 LLM 引用
+            context_str = "\n".join([f"{i+1}. {doc}" for i, doc in enumerate(retrieved_docs)])
+        else:
+            print("[Server] ⚠️ 未检索到有效数据或服务不可用，切换至模拟数据模式。")
+            context_str = (
+                "1. [模拟数据] 监测发现目标海域无线电信号异常增强 15%。\n"
+                "2. [模拟数据] 气象数据显示未来 48 小时内将有强对流天气。\n"
+                "3. [模拟数据] 历史记录显示该区域常用于年度例行测试。"
+            )
+        
+        # --- 阶段二：构建提示词 (Prompt) ---
         final_prompt = f"""
-        你是一个专业的态势分析员。请根据以下【背景信息】和【用户指令】，撰写一份专业的态势报告。
-        【背景信息】：{context_str}
-        【用户指令】：{request.user_prompt}
-        要求：Markdown格式，字数500以内，分条列述。
+        你是一个专业的态势分析员。请根据以下【背景情报】对【用户指令】进行深度分析，撰写一份态势报告。
+        
+        【背景情报】：
+        {context_str}
+        
+        【用户指令】：
+        {request.user_prompt}
+        
+        【要求】：
+        1. 必须基于情报事实进行推断。
+        2. 报告包含：摘要、现状分析、趋势预测。
+        3. 使用 Markdown 格式，字数控制在 600 字以内。
         """
 
-        # 调用 vLLM (带降级处理)
+        # --- 阶段三：执行大模型推理 ---
         llm_content = ""
         try:
-            print(f"[后端日志] 正在请求 vLLM (端口 8002)... 请耐心等待...")
+            print(f"[Server] 请求 Chat 模型推理 (端口 8002)...")
             resp = requests.post(
-                VLLM_API_URL, 
+                CHAT_API_URL, 
                 json={
-                    "model": MODEL_NAME,
+                    "model": CHAT_MODEL_NAME,
                     "messages": [{"role": "user", "content": final_prompt}],
                     "temperature": 0.7,
                     "max_tokens": 2048
                 }, 
                 proxies={"http": None, "https": None},
-                # ====================================================
-                # 👇【核心修改】将超时时间从 5 秒改为 60 秒
-                # 大模型生成需要时间，5秒太短了
-                # ====================================================
-                timeout=60 
+                timeout=60
             )
             resp.raise_for_status()
             llm_content = resp.json()["choices"][0]["message"]["content"]
-            print("[后端日志] ✅ vLLM 生成成功！")
-            
-        except requests.exceptions.Timeout:
-            print(f"[后端日志] ⚠️ vLLM 响应超时 (>60s) -> 切换到模拟模式")
-            llm_content = self._get_fallback_content()
+            print("[Server] ✅ 报告生成完成。")
             
         except Exception as e:
-            print(f"[后端日志] ⚠️ vLLM 调用出错: {e} -> 切换到模拟模式")
-            llm_content = self._get_fallback_content()
-
-        # 如果 llm_content 为空（比如 try 块未完全执行），赋予默认值
-        if not llm_content:
-             llm_content = self._get_fallback_content()
+            print(f"[Server] ⚠️ Chat 模型调用失败: {e}")
+            llm_content = f"> **⚠️ 系统提示**：大模型服务连接异常，仅展示检索到的情报。\n\n**相关情报如下：**\n{context_str}"
 
         return {
             "status": "success",
@@ -122,120 +139,49 @@ async def generate_report(request: UserRequest):
         }
 
     except Exception as e:
-        print(f"[错误] {e}")
+        print(f"[Server] ❌ 内部服务错误: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
-    def _get_fallback_content(self):
-        """返回降级用的模拟数据"""
-        return """
-> **⚠️ 系统提示**：模型服务响应超时或不可用，以下为规则引擎生成的模拟数据。
-
-## 📊 态势分析报告（离线版）
-根据检索到的情报（无线电频率增加、恶劣海况），判断当前区域存在**非典型军事活动**特征。
-建议持续关注气象窗口期（未来72小时）。
-"""
-
-# 为了兼容函数内调用，定义一个独立的 fallback 函数
-def _get_fallback_content_standalone():
-    return """
-> **⚠️ 系统提示**：模型服务响应超时或不可用，以下为规则引擎生成的模拟数据。
-
-## 📊 态势分析报告（离线版）
-根据检索到的情报（无线电频率增加、恶劣海况），判断当前区域存在**非典型军事活动**特征。
-建议持续关注气象窗口期（未来72小时）。
-"""
-
-# 修正 generate_report 内部的调用
-@app.post("/generate_report")
-async def generate_report_fixed(request: UserRequest):
-    print(f"[后端日志] 收到指令: {request.user_prompt}")
-    
-    try:
-        retrieved_docs = mock_search_database(request.user_prompt)
-        context_str = "\n".join(retrieved_docs)
-        
-        final_prompt = f"""
-        你是一个专业的态势分析员。请根据以下【背景信息】和【用户指令】，撰写一份专业的态势报告。
-        【背景信息】：{context_str}
-        【用户指令】：{request.user_prompt}
-        要求：Markdown格式，字数500以内，分条列述。
-        """
-
-        llm_content = ""
-        try:
-            print(f"[后端日志] 正在请求 vLLM (端口 8002)... 请耐心等待...")
-            resp = requests.post(
-                VLLM_API_URL, 
-                json={
-                    "model": MODEL_NAME,
-                    "messages": [{"role": "user", "content": final_prompt}],
-                    "temperature": 0.7,
-                    "max_tokens": 2048
-                }, 
-                proxies={"http": None, "https": None},
-                # 【修改】超时时间改为 60 秒
-                timeout=60 
-            )
-            resp.raise_for_status()
-            llm_content = resp.json()["choices"][0]["message"]["content"]
-            print("[后端日志] ✅ vLLM 生成成功！")
-            
-        except Exception as e:
-            print(f"[后端日志] ⚠️ vLLM 调用异常: {e} -> 切换到模拟模式")
-            llm_content = _get_fallback_content_standalone()
-
-        return {
-            "status": "success",
-            "original_query": request.user_prompt,
-            "retrieved_info": context_str,
-            "report_content": llm_content
-        }
-
-    except Exception as e:
-        print(f"[错误] {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-# 覆盖之前的路由定义
-app.router.routes = [r for r in app.router.routes if r.path != "/generate_report"]
-app.post("/generate_report")(generate_report_fixed)
-
 
 # ==========================================
-# 4. 前端托管 (核心黑科技)
+# 5. 静态资源托管与端口管理
 # ==========================================
 
 @app.get("/", response_class=HTMLResponse)
 async def serve_frontend():
     frontend_path = "index.html"
     if not os.path.exists(frontend_path):
-        return "<h1>错误：找不到 index.html 文件</h1><p>请确保 index.html 和 server.py 在同一目录下。</p>"
+        return "<h1>错误：未找到 index.html</h1><p>请确保前端文件部署在正确目录。</p>"
     
     with open(frontend_path, "r", encoding="utf-8") as f:
         content = f.read()
     
+    # 动态注入后端接口地址，适配当前运行端口
     content = re.sub(
         r'fetch\s*\(\s*["\']http://localhost:\d+/generate_report["\']', 
         'fetch("/generate_report"', 
         content
     )
-    
     return HTMLResponse(content=content)
 
-# ==========================================
-# 5. 启动入口
-# ==========================================
+def find_free_port(start_port=8001, max_retries=100):
+    port = start_port
+    while port < start_port + max_retries:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            if s.connect_ex(('localhost', port)) != 0:
+                try:
+                    s.bind(('0.0.0.0', port))
+                    return port
+                except OSError: pass
+        port += 1
+    raise RuntimeError("无法分配可用端口，请检查网络设置。")
 
 if __name__ == "__main__":
     try:
         PORT = find_free_port(8001)
+        print("="*60)
+        print(f"🚀 态势报告生成系统已启动")
+        print(f"🔗 访问地址: http://localhost:{PORT}")
+        print("="*60)
+        uvicorn.run(app, host="0.0.0.0", port=PORT)
     except Exception as e:
-        print(f"❌ {e}")
-        exit(1)
-
-    print("="*50)
-    print(f"🚀 系统启动成功！")
-    print(f"🌍 访问地址: http://localhost:{PORT}")
-    print(f"🔌 后端端口: {PORT} (前端已自动集成)")
-    print("="*50)
-    
-    uvicorn.run(app, host="0.0.0.0", port=PORT)
+        print(f"❌ 服务启动失败: {e}")
