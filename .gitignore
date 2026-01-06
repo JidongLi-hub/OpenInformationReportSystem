@@ -1,2 +1,5 @@
 database/
 datafiles/
+.env
+pycache/
+*.pyc
