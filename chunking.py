@@ -770,7 +770,7 @@ class SummaryGenerator:
     为Section和Parent块生成摘要，增强检索效果
     """
     
-    def __init__(self, base_url: str = "http://localhost:8888/v1", api_key: str = "EMPTY"):
+    def __init__(self, base_url: str = "http://localhost:28888/v1", api_key: str = "EMPTY"):
         from openai import OpenAI
         self.client = OpenAI(base_url=base_url, api_key=api_key)
         self.model = None

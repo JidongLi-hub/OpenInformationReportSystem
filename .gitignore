@@ -1,4 +1,5 @@
 database/
+database_test/
 datafiles/
 .env
 pycache/

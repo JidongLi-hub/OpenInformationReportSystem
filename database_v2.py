@@ -68,10 +68,10 @@ class HierarchicalVectorDatabase:
     
     def __init__(
         self,
-        database_path: str = "./database/hierarchical_rag.db",
+        database_path: str = "./database_test/hierarchical_rag.db",
         embedding_dim: int = 1024,
         embedding_base_url: str = "http://localhost:7979/v1",
-        llm_base_url: str = "http://localhost:8888/v1",
+        llm_base_url: str = "http://localhost:28888/v1",
         embedding_model: str = "/data2/home/lijidong/models/bge-m3",
         max_embedding_chars: int = 24000  # 新增参数
     ):
@@ -849,5 +849,6 @@ if __name__ == "__main__":
             exit(1)
         
         db = HierarchicalVectorDatabase()
-        context = db.get_retrieval_context(args.query, top_k=args.top_k)
+        # context = db.get_retrieval_context(args.query, top_k=args.top_k)
+        context = db.search_with_context(args.query, top_k=args.top_k)
         print(context)
