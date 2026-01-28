@@ -28,7 +28,9 @@ from chunking import (
     SummaryGenerator, 
     Chunk, 
     ChunkType,
-    chunk_markdown_document
+    chunk_markdown_document,
+    chunk_plain_text_document,
+    chunk_document_auto
 )
 
 
@@ -68,7 +70,7 @@ class HierarchicalVectorDatabase:
     
     def __init__(
         self,
-        database_path: str = "./database_test/hierarchical_rag.db",
+        database_path: str = "./database/hierarchical_rag.db",
         embedding_dim: int = 1024,
         embedding_base_url: str = "http://localhost:7979/v1",
         llm_base_url: str = "http://localhost:28888/v1",
@@ -358,27 +360,44 @@ class HierarchicalVectorDatabase:
         self,
         file_path: str,
         generate_summaries: bool = False,
-        show_progress: bool = True
+        show_progress: bool = True,
+        file_type: str = "auto"
     ) -> Dict[str, int]:
         """
-        处理单个Markdown文件
+        处理单个文件（支持Markdown和纯文本）
         
         Args:
             file_path: 文件路径
             generate_summaries: 是否生成摘要
             show_progress: 是否显示进度
+            file_type: 文件类型，可选值:
+                - "auto": 自动检测（根据扩展名和内容）
+                - "markdown" / "md": 强制作为Markdown处理
+                - "text" / "txt": 强制作为纯文本处理
         
         Returns:
             各类型块的数量统计
         """
         # 读取文件
         with open(file_path, 'r', encoding='utf-8') as f:
-            markdown_text = f.read()
+            content = f.read()
         
         file_name = os.path.basename(file_path)
+        file_ext = os.path.splitext(file_path)[1].lower()
         
-        # 分层切分
-        chunks = self.chunker.chunk_document(markdown_text, file_name)
+        # 确定处理方式
+        if file_type == "auto":
+            # 自动检测
+            chunks = self.chunker.chunk_auto(content, file_name)
+            detected_type = "markdown" if self.chunker.parser.HEADING_PATTERN.search(content) else "plain text"
+            print(f"[INFO] 自动检测文件类型: {detected_type}")
+        elif file_type in ["markdown", "md"]:
+            chunks = self.chunker.chunk_document(content, file_name)
+        elif file_type in ["text", "txt"]:
+            chunks = self.chunker.chunk_plain_text(content, file_name)
+        else:
+            # 默认自动检测
+            chunks = self.chunker.chunk_auto(content, file_name)
         
         stats = {
             "sections": 0,
@@ -428,6 +447,33 @@ class HierarchicalVectorDatabase:
               f"Children: {stats['children']}, Summaries: {stats['summaries']}")
         
         return stats
+    
+    def process_text_file(
+        self,
+        file_path: str,
+        generate_summaries: bool = False,
+        show_progress: bool = True,
+        title: str = None
+    ) -> Dict[str, int]:
+        """
+        处理纯文本文件（便捷方法）
+        
+        Args:
+            file_path: 文件路径
+            generate_summaries: 是否生成摘要
+            show_progress: 是否显示进度
+            title: 文档标题（可选，默认使用文件名）
+        
+        Returns:
+            各类型块的数量统计
+        """
+        return self.process_file(
+            file_path,
+            generate_summaries=generate_summaries,
+            show_progress=show_progress,
+            file_type="txt"
+        )
+    
     
     def _prepare_child_data(self, chunks: List[Chunk], show_progress: bool) -> List[dict]:
         """准备Child数据"""
@@ -533,9 +579,20 @@ class HierarchicalVectorDatabase:
     def process_files(
         self,
         file_list: List[str],
-        generate_summaries: bool = False
+        generate_summaries: bool = False,
+        file_type: str = "auto"
     ) -> Dict[str, int]:
-        """批量处理文件"""
+        """
+        批量处理文件
+        
+        Args:
+            file_list: 文件路径列表
+            generate_summaries: 是否生成摘要
+            file_type: 文件类型 ("auto", "markdown", "txt")
+        
+        Returns:
+            各类型块的总数量统计
+        """
         total_stats = {"sections": 0, "parents": 0, "children": 0, "summaries": 0}
         
         for file_path in tqdm(file_list, desc="处理文档"):
@@ -543,7 +600,12 @@ class HierarchicalVectorDatabase:
                 print(f"[WARNING] 文件不存在: {file_path}")
                 continue
             
-            stats = self.process_file(file_path, generate_summaries, show_progress=False)
+            stats = self.process_file(
+                file_path, 
+                generate_summaries, 
+                show_progress=False,
+                file_type=file_type
+            )
             for key in total_stats:
                 total_stats[key] += stats[key]
         
@@ -719,6 +781,52 @@ class HierarchicalVectorDatabase:
             context_list.append(context)
         
         return context_list
+
+    def process_directory(
+        self,
+        dir_path: str,
+        extensions: List[str] = None,
+        generate_summaries: bool = False,
+        file_type: str = "auto",
+        recursive: bool = True
+    ) -> Dict[str, int]:
+        """
+        处理目录下的所有文件
+        
+        Args:
+            dir_path: 目录路径
+            extensions: 要处理的文件扩展名列表，默认 ['.md', '.txt']
+            generate_summaries: 是否生成摘要
+            file_type: 文件类型 ("auto", "markdown", "txt")
+            recursive: 是否递归处理子目录
+        
+        Returns:
+            各类型块的总数量统计
+        """
+        if extensions is None:
+            extensions = ['.md', '.txt']
+        
+        # 确保扩展名以点开头
+        extensions = [ext if ext.startswith('.') else f'.{ext}' for ext in extensions]
+        
+        file_list = []
+        
+        if recursive:
+            for root, dirs, files in os.walk(dir_path):
+                for f in files:
+                    if any(f.lower().endswith(ext) for ext in extensions):
+                        file_list.append(os.path.join(root, f))
+        else:
+            for f in os.listdir(dir_path):
+                if any(f.lower().endswith(ext) for ext in extensions):
+                    file_list.append(os.path.join(dir_path, f))
+        
+        print(f"[INFO] 找到 {len(file_list)} 个文件 (扩展名: {extensions})")
+        
+        if not file_list:
+            return {"sections": 0, "parents": 0, "children": 0, "summaries": 0}
+        
+        return self.process_files(file_list, generate_summaries, file_type)
     
     def get_retrieval_context(self, query: str, top_k: int = 3) -> str:
         """
@@ -792,7 +900,7 @@ class VectorDatabase(HierarchicalVectorDatabase):
         return texts
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  
     import argparse
     
     parser = argparse.ArgumentParser(description="分层RAG向量数据库")
@@ -802,6 +910,10 @@ if __name__ == "__main__":
     parser.add_argument("--query", type=str, help="搜索查询")
     parser.add_argument("--summaries", action="store_true", help="是否生成摘要")
     parser.add_argument("--top-k", type=int, default=3, help="返回结果数量")
+    parser.add_argument("--file-type", choices=["auto", "markdown", "md", "text", "txt"], 
+                       default="auto", help="文件类型: auto=自动检测, markdown/md=Markdown, text/txt=纯文本")
+    parser.add_argument("--extensions", type=str, default=".md,.txt",
+                       help="要处理的文件扩展名，逗号分隔（仅目录模式有效）")
     
     args = parser.parse_args()
     
@@ -832,16 +944,22 @@ if __name__ == "__main__":
         db = HierarchicalVectorDatabase()
         
         if os.path.isfile(args.path):
-            db.process_file(args.path, generate_summaries=args.summaries)
+            db.process_file(
+                args.path, 
+                generate_summaries=args.summaries,
+                file_type=args.file_type
+            )
         elif os.path.isdir(args.path):
-            # 查找所有.md文件
-            md_files = []
-            for root, dirs, files in os.walk(args.path):
-                for f in files:
-                    if f.endswith('.md'):
-                        md_files.append(os.path.join(root, f))
-            print(f"找到 {len(md_files)} 个Markdown文件")
-            db.process_files(md_files, generate_summaries=args.summaries)
+            # 解析扩展名
+            extensions = [ext.strip() for ext in args.extensions.split(',')]
+            db.process_directory(
+                args.path,
+                extensions=extensions,
+                generate_summaries=args.summaries,
+                file_type=args.file_type
+            )
+        else:
+            print(f"[ERROR] 路径不存在: {args.path}")
     
     elif args.mode == "search":
         if not args.query:
@@ -849,6 +967,5 @@ if __name__ == "__main__":
             exit(1)
         
         db = HierarchicalVectorDatabase()
-        # context = db.get_retrieval_context(args.query, top_k=args.top_k)
-        context = db.search_with_context(args.query, top_k=args.top_k)
-        print(context)
+        # context = db.search_with_context(args.query, top_k=args.top_k)
+        # print(context)

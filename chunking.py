@@ -20,6 +20,7 @@ import hashlib
 from typing import List, Dict, Optional, Tuple
 from dataclasses import dataclass, field, asdict
 from enum import Enum
+import os
 
 
 class ChunkType(Enum):
@@ -135,6 +136,30 @@ class MarkdownParser:
         sections = self._build_hierarchy(headings)
         
         return sections
+    def parse_plain_text(self, text: str, title: str = "Document") -> List[Section]:
+        """
+        解析纯文本文档（无Markdown标记）
+        
+        将整个文档作为一个Section处理
+        
+        Args:
+            text: 纯文本内容
+            title: 文档标题（默认使用文件名）
+            
+        Returns:
+            包含单个Section的列表
+        """
+        if not text or not text.strip():
+            return []
+        
+        return [Section(
+            heading=title,
+            heading_level=1,
+            content=text.strip(),
+            raw_text=text.strip(),
+            start_pos=0,
+            end_pos=len(text)
+        )]
     
     def _build_hierarchy(self, headings: List[dict]) -> List[Section]:
         """构建层次化的Section结构"""
@@ -357,6 +382,158 @@ class HierarchicalChunker:
                 position += 1
         
         return result
+    
+    def chunk_plain_text(self, text: str, file_name: str, title: str = None) -> Dict[str, List[Chunk]]:
+        """
+        对纯文本文档进行分层切分
+        
+        将整个文档作为一个Section，然后切分为Parent和Child块
+        
+        Args:
+            text: 纯文本内容
+            file_name: 源文件名
+            title: 文档标题（默认使用文件名，去掉扩展名）
+            
+        Returns:
+            包含各层级块的字典：
+            {
+                'sections': [Section级别的Chunk],
+                'parents': [Parent级别的Chunk],
+                'children': [Child级别的Chunk，用于检索]
+            }
+        """
+        if not text or not text.strip():
+            return {'sections': [], 'parents': [], 'children': []}
+        
+        # 使用文件名作为默认标题
+        if title is None:
+            title = os.path.splitext(file_name)[0] if file_name else "Document"
+        
+        # 解析为单个Section
+        sections = self.parser.parse_plain_text(text, title)
+        
+        result = {
+            'sections': [],
+            'parents': [],
+            'children': []
+        }
+        
+        position = 0
+        
+        for section in sections:
+            if not section.content.strip():
+                continue
+            
+            section_text = section.raw_text
+            section_word_count = self._count_words(section_text)
+            section_char_count = len(section_text)
+            
+            # 检查Section是否过大，需要切分
+            if section_word_count > self.max_section_words or section_char_count > self.max_embedding_chars:
+                # Section过大，切分为多个子Section
+                sub_section_chunks = self._split_large_section(
+                    section, file_name, position
+                )
+                
+                for sub_chunk in sub_section_chunks:
+                    result['sections'].append(sub_chunk)
+                    
+                    parent_chunks = self._create_parent_chunks(
+                        sub_chunk.text,
+                        sub_chunk.id,
+                        file_name,
+                        sub_chunk.heading,
+                        position
+                    )
+                    
+                    for parent in parent_chunks:
+                        child_chunks = self._create_child_chunks(
+                            parent.text,
+                            parent.id,
+                            sub_chunk.id,
+                            file_name,
+                            position
+                        )
+                        
+                        parent.child_ids = [c.id for c in child_chunks]
+                        
+                        result['parents'].append(parent)
+                        result['children'].extend(child_chunks)
+                        
+                        position += 1
+                    
+                    position += 1
+            else:
+                # Section大小合适，正常处理
+                section_id = self._generate_id(section.raw_text, file_name, "section")
+                section_chunk = Chunk(
+                    id=section_id,
+                    chunk_type=ChunkType.SECTION,
+                    text=section.raw_text,
+                    file_name=file_name,
+                    heading=section.heading,
+                    heading_level=section.heading_level,
+                    position=position
+                )
+                result['sections'].append(section_chunk)
+                
+                parent_chunks = self._create_parent_chunks(
+                    section.content,
+                    section_id,
+                    file_name,
+                    section.heading,
+                    position
+                )
+                
+                for parent in parent_chunks:
+                    child_chunks = self._create_child_chunks(
+                        parent.text,
+                        parent.id,
+                        section_id,
+                        file_name,
+                        position
+                    )
+                    
+                    parent.child_ids = [c.id for c in child_chunks]
+                    
+                    result['parents'].append(parent)
+                    result['children'].extend(child_chunks)
+                    
+                    position += 1
+                
+                position += 1
+        
+        return result
+    
+    def chunk_auto(self, text: str, file_name: str) -> Dict[str, List[Chunk]]:
+        """
+        自动检测文档类型并进行切分
+        
+        根据文件扩展名和内容特征自动选择切分策略：
+        - .md 文件或包含Markdown标题的文本：使用Markdown切分
+        - .txt 文件或纯文本：使用纯文本切分
+        
+        Args:
+            text: 文档内容
+            file_name: 文件名
+            
+        Returns:
+            包含各层级块的字典
+        """
+        # 检查文件扩展名
+        ext = os.path.splitext(file_name)[1].lower() if file_name else ""
+        
+        # 检查是否包含Markdown标题
+        has_markdown_headings = bool(self.parser.HEADING_PATTERN.search(text))
+        
+        if ext == '.md' or has_markdown_headings:
+            # 使用Markdown切分
+            return self.chunk_document(text, file_name)
+        else:
+            # 使用纯文本切分
+            return self.chunk_plain_text(text, file_name)
+    
+
     
     def _split_large_section(
         self, 
@@ -761,6 +938,94 @@ class HierarchicalChunker:
         content = f"{file_name}:{prefix}:{text[:100]}"
         hash_digest = hashlib.md5(content.encode()).hexdigest()[:12]
         return f"{prefix}_{hash_digest}"
+
+
+def chunk_plain_text_document(
+    text: str,
+    file_name: str,
+    title: str = None,
+    parent_chunk_size: int = 800,
+    child_chunk_size: int = 200,
+    generate_summaries: bool = False,
+    llm_base_url: str = "http://localhost:8888/v1"
+) -> Dict[str, List[Chunk]]:
+    """
+    对纯文本文档进行分层切分
+    
+    Args:
+        text: 纯文本内容
+        file_name: 文件名
+        title: 文档标题（可选）
+        parent_chunk_size: 父块大小
+        child_chunk_size: 子块大小
+        generate_summaries: 是否生成摘要
+        llm_base_url: LLM服务地址
+    
+    Returns:
+        包含sections, parents, children, summaries的字典
+    """
+    chunker = HierarchicalChunker(
+        parent_chunk_size=parent_chunk_size,
+        child_chunk_size=child_chunk_size
+    )
+    
+    result = chunker.chunk_plain_text(text, file_name, title)
+    result['summaries'] = []
+    
+    if generate_summaries:
+        try:
+            summary_gen = SummaryGenerator(base_url=llm_base_url)
+            for section in result['sections']:
+                summary = summary_gen.generate_section_summary(section)
+                if summary:
+                    result['summaries'].append(summary)
+        except Exception as e:
+            print(f"[WARNING] 摘要生成初始化失败: {e}")
+    
+    return result
+
+
+def chunk_document_auto(
+    text: str,
+    file_name: str,
+    parent_chunk_size: int = 800,
+    child_chunk_size: int = 200,
+    generate_summaries: bool = False,
+    llm_base_url: str = "http://localhost:8888/v1"
+) -> Dict[str, List[Chunk]]:
+    """
+    自动检测文档类型并进行分层切分
+    
+    Args:
+        text: 文档内容
+        file_name: 文件名
+        parent_chunk_size: 父块大小
+        child_chunk_size: 子块大小
+        generate_summaries: 是否生成摘要
+        llm_base_url: LLM服务地址
+    
+    Returns:
+        包含sections, parents, children, summaries的字典
+    """
+    chunker = HierarchicalChunker(
+        parent_chunk_size=parent_chunk_size,
+        child_chunk_size=child_chunk_size
+    )
+    
+    result = chunker.chunk_auto(text, file_name)
+    result['summaries'] = []
+    
+    if generate_summaries:
+        try:
+            summary_gen = SummaryGenerator(base_url=llm_base_url)
+            for section in result['sections']:
+                summary = summary_gen.generate_section_summary(section)
+                if summary:
+                    result['summaries'].append(summary)
+        except Exception as e:
+            print(f"[WARNING] 摘要生成初始化失败: {e}")
+    
+    return result
 
 
 class SummaryGenerator:
